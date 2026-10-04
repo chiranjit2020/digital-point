@@ -1,4 +1,14 @@
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import type { RefObject } from 'react';
+import {
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { business, telUrl, whatsappUrl } from '../constants/business';
 import { colors, radius, spacing } from '../constants/theme';
@@ -9,16 +19,34 @@ import { Icon } from './Icon';
 // Below this width the brand plus two labelled buttons don't fit on one row.
 const COMPACT_BELOW = 420;
 
+type HeaderProps = {
+  /** The view whose pixels are blurred behind the header (Android needs an explicit target). */
+  blurTarget: RefObject<View | null>;
+  /** Reports the header's measured height, so the page can pad its content below it. */
+  onLayout?: (event: LayoutChangeEvent) => void;
+  style?: StyleProp<ViewStyle>;
+};
+
 // Web <header class="site-header">. The hamburger menu and anchor nav are
 // not ported: on a phone, the page is one scroll plus contact buttons.
-export function Header() {
+export function Header({ blurTarget, onLayout, style }: HeaderProps) {
   // The RN replacement for CSS media queries: the current window size in dp,
   // which updates on rotation or split-screen.
   const { width } = useWindowDimensions();
   const compact = width < COMPACT_BELOW;
 
   return (
-    <View style={styles.header}>
+    // Frosted glass, the site's backdrop-filter: blur(). On Android 12+ (API 31)
+    // this is a real blur; on older phones "Sdk31Plus" falls back to a
+    // translucent view, because the older blur API is slow there.
+    <BlurView
+      blurTarget={blurTarget}
+      blurMethod="dimezisBlurViewSdk31Plus"
+      intensity={60}
+      tint="light"
+      onLayout={onLayout}
+      style={[styles.header, style]}
+    >
       <View style={styles.brand} accessible accessibilityRole="header" accessibilityLabel={business.name}>
         <View style={styles.badge}>
           <Icon name="view-grid" color={colors.white} size={20} />
@@ -47,7 +75,7 @@ export function Header() {
           onPress={() => openLink(whatsappUrl(), 'WhatsApp could not be opened.')}
         />
       </View>
-    </View>
+    </BlurView>
   );
 }
 
@@ -59,7 +87,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
+    overflow: 'hidden', // keep the blur inside the header's bounds
     borderBottomWidth: StyleSheet.hairlineWidth, // thinnest line the screen can draw
     borderBottomColor: colors.border,
   },

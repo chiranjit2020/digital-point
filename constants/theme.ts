@@ -18,10 +18,6 @@ export const colors = {
   heroTint: '#EAF1FE',
   white: '#FFFFFF',
   error: '#C0262D',
-  // Icon colours (the site's .c-* classes)
-  iconBlue: '#1554D1',
-  iconOrange: '#E8590C',
-  iconSky: '#1D7CF2',
 } as const;
 
 // All sizes are in dp (density-independent pixels), not CSS px or rem.

@@ -4,9 +4,13 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **Adaptive icon.** Android 8+ launcher-icon format made of a **foreground** and a **background** layer, which each launcher masks into its own shape (circle, squircle, teardrop). Android 13+ also uses a **monochrome** layer for themed icons. Configured in `app.json` under `android.adaptiveIcon`. Unlike a favicon, it isn't one fixed image.
 
+**API level.** The number Android uses for each OS version (Android 12 = API 31, Android 13 = API 33). Features and permissions are tied to API levels, so code often checks or targets a minimum one, similar to browser feature support on the web.
+
 **`app.json`.** Expo's app configuration: name, version, icon, splash, orientation and platform-specific blocks. At build time Expo generates the native Android configuration (`AndroidManifest.xml`, Gradle settings) from it. Roughly the mobile equivalent of a web app manifest plus build config.
 
 **Autolinking.** The build step that finds native modules in your dependencies and compiles them into the Android/iOS project automatically. Expo autolinks direct dependencies, which is why native peer dependencies (like `expo-font`) must be listed in `package.json` explicitly.
+
+**BlurTargetView.** `expo-blur` component that marks which view's pixels a `BlurView` should blur on Android, connected through a ref. Android can't blur "whatever is behind" without being told.
 
 **Config plugin.** Code listed under `plugins` in `app.json` that modifies the generated native project (Android manifest, Gradle files) at build time. For example, Expo Router's plugin registers the URL scheme. It has no effect in Expo Go, which is already built.
 
@@ -23,6 +27,10 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 **Expo SDK.** A versioned, tested set of Expo packages tied to one React Native and React version (SDK 57 = RN 0.86 + React 19.2). Upgrading means moving the whole set together.
 
 **Fast Refresh.** React Native's hot reloading. On save, only the changed module is re-sent and re-rendered, and component state is kept. Like Vite HMR, but the "browser" is the phone.
+
+**FlatList.** React Native's virtualized list component. It renders only the rows near the screen and recycles them while scrolling. Use it for long or growing lists; for a short fixed list inside a ScrollView, `.map()` is simpler and fine.
+
+**Font scaling.** The user's system text-size setting (Android: Display → Font size), applied to every `<Text>` by default. Layouts must grow with it, so avoid fixed heights around text.
 
 **Hermes.** The JavaScript engine React Native uses on the device, built for mobile: fast startup and low memory. It plays the role V8 plays in Chrome.
 
@@ -43,6 +51,8 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 **Metro.** React Native's JavaScript bundler and dev server (the equivalent of Vite or webpack). It transforms TypeScript/JSX, resolves modules, serves the bundle on port 8081 and drives Fast Refresh.
 
 **Native module.** Code written in Kotlin/Java (Android) or Swift/Obj-C (iOS) that exposes device features (camera, haptics, secure storage) to JavaScript. It has to be compiled into the app binary, so it can't be added over Fast Refresh the way JS can.
+
+**onLayout.** A prop on RN views that reports the view's measured position and size after layout. Used when something depends on a real rendered size, like padding content below a floating header.
 
 **Peer dependency.** A package another package expects you to install yourself, at a compatible version. npm may auto-install peers at its *latest* version, which in an Expo project can conflict with the SDK. Fix with `npx expo install <pkg>`.
 
@@ -65,5 +75,7 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 **TalkBack.** Android's built-in screen reader. It reads `accessibilityRole`, `accessibilityLabel` and text content, which is why `Pressable` needs `accessibilityRole="button"`.
 
 **useWindowDimensions.** React Native hook returning the current window width and height in dp. It re-renders on rotation or resize. This is RN's replacement for CSS media queries.
+
+**Virtualization.** Rendering only the visible part of a long list and unmounting off-screen items, which keeps memory and render time flat regardless of list length. It's what `FlatList` does.
 
 **Yoga.** The layout engine inside React Native that implements flexbox. It's close to CSS flexbox but not identical: for example, percentage widths combined with `aspectRatio` in wrapping rows behave differently from the browser.

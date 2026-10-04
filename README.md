@@ -69,7 +69,7 @@ Lint and tests will be added in later phases.
 ├── app/             routes: every file here is a screen (Expo Router)
 │   ├── _layout.tsx  root layout: Stack navigator + status bar
 │   └── index.tsx    "/" Home screen
-├── components/      UI pieces (AppButton, Header, Hero, Icon) — not routes
+├── components/      UI pieces (AppButton, Header, Hero, Icon, SectionHeading, ServiceCard, ServiceSection) — not routes
 ├── constants/
 │   ├── business.ts  ← contact data (phone, WhatsApp, address, hours, map). Edit here only.
 │   ├── services.ts  typed service list

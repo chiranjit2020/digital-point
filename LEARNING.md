@@ -6,6 +6,7 @@ My personal reference for moving from web development to React Native and Androi
 - [Milestone 2 — React Native fundamentals: the Hero section](#milestone-2--react-native-fundamentals-the-hero-section-2026-10-04)
 - [Milestone 3 — Expo Router: file-based navigation](#milestone-3--expo-router-file-based-navigation-2026-10-04)
 - [Milestone 4 — Header, icons, business data and Linking](#milestone-4--header-icons-business-data-and-linking-2026-10-04)
+- [Milestone 5 — Service lists, font scaling and a frosted header](#milestone-5--service-lists-font-scaling-and-a-frosted-header-2026-10-04)
 - [Package log](#package-log)
 
 ---
@@ -279,6 +280,59 @@ Linking, `useWindowDimensions`, Yoga, hit slop, peer dependency, autolinking. Se
 
 ---
 
+## Milestone 5 — Service lists, font scaling and a frosted header (2026-10-04)
+
+### What I learned
+
+**1. `.map()` vs `FlatList`: pick by size, not by habit.**
+| | `.map()` in a `ScrollView` | `FlatList` |
+|---|---|---|
+| Renders | every item, immediately | only items near the screen (**virtualization**). Off-screen rows unmount and remount while scrolling |
+| Use for | short, fixed lists | hundreds of rows, lists that grow at runtime, infinite scroll |
+
+The 19 service cards use `.map()`. A `FlatList` **inside** a vertical `ScrollView` loses its virtualization and RN warns *"VirtualizedLists should never be nested inside plain ScrollViews"*. Using one would have meant turning the whole Home screen into one `FlatList`/`SectionList`. "Always use FlatList" is advice for long lists, not a rule.
+
+**2. Font scaling is on by default, so never fix heights around text.** Android users can enlarge system text (up to ~200%), and every `<Text>` follows it. Cards have **no fixed height** and grow with their text. Tested with the largest font size: the cards got taller and nothing was cut off.
+
+**3. Accessible grouping.** `accessible` on a card's container makes TalkBack read it as **one** item ("title, description") instead of separate fragments. It's like wrapping related content in one focusable element on the web.
+
+**4. A backdrop blur needs something to blur.** I wanted the website's frosted-glass cards, but those cards sit on a **solid** background in the app, so a blur would change nothing visible and cost performance (19 live blur views while scrolling). The blur went where it's visible: a **frosted header floating over scrolling content**, with one blur view.
+
+**5. Android blur = render target + API level.**
+- Android can't blur "whatever is behind me" for free. You wrap the source in `BlurTargetView` and pass a **ref** to it as `blurTarget`. The `BlurView` must sit **outside** the target.
+- Without `blurMethod`, Android just renders a translucent view (default `'none'`). `dimezisBlurViewSdk31Plus` gives a real blur on Android 12+ (API 31, efficient RenderNode API) and falls back to translucent on older phones, where the old RenderScript blur is slow. It's **progressive enhancement**, like `@supports (backdrop-filter: blur())`. My phone runs Android 13 (API 33), so the real blur works.
+
+**6. Overlays and measuring layout.** The header is now `position: 'absolute'` on top of the ScrollView, so it no longer takes up space, and the content would start *behind* it. `onLayout` reports the header's real height (which changes with font scale), and that becomes the ScrollView's `paddingTop`. In RN, later siblings draw on top, so no `zIndex` is needed.
+
+**7. Small design decisions that differ from the website (deliberate):** all icons and hero tiles use the theme blue `#0F55D8`; Our Services titles aren't numbered; the trailing `।` (Bengali full stop) is removed from card descriptions.
+
+### Why it matters
+Lists and overlays appear in nearly every mobile app. Knowing when virtualization matters, and that text size is a user setting rather than a design constant, prevents the two most common RN layout bugs on real devices: janky long lists and cut-off text.
+
+### What changed
+- Added `expo-blur`.
+- New `components/SectionHeading.tsx`, `components/ServiceCard.tsx`, `components/ServiceSection.tsx`.
+- Home: Hero → Quick Services (4) → Our Services (15, tinted). The Header is a frosted overlay with measured padding.
+- `constants/services.ts`: removed the per-service `color` (all icons are theme blue). `theme.ts`: removed the unused icon colours.
+
+### Important commands
+```bash
+npx expo install expo-blur
+```
+
+### Important terminology
+FlatList, virtualization, font scaling, `BlurTargetView`, API level, `onLayout`. See [`docs/glossary.md`](docs/glossary.md).
+
+### Common mistakes
+- Nesting a `FlatList` inside a same-direction `ScrollView`.
+- Giving text containers a fixed `height`, which cuts off text at large font sizes.
+- Using the array index as `key` when a stable id exists.
+- Adding `BlurView` on Android without `blurMethod` (you get plain translucency) or without a `blurTarget`.
+- Placing the `BlurView` inside the `BlurTargetView` it blurs.
+- Blurring over a solid colour, which costs performance and changes nothing visible.
+
+---
+
 ## Package log
 
 Template packages from `create-expo-app --template blank-typescript`. I didn't add any of my own in this milestone.
@@ -372,3 +426,10 @@ Template packages from `create-expo-app --template blank-typescript`. I didn't a
 - **Why we needed them:** we don't use them directly. Expo Router's `react-native-drawer-layout` needs reanimated, so npm auto-installed both at the **latest** versions (4.7.1 / 0.13.0), which `npm ls` reported as `invalid` against SDK 57.
 - **Why pin them:** they're **native** modules, so they get compiled into the APK whether or not our code imports them. Pinning to the SDK-tested versions avoids Gradle and runtime surprises in Phase 8.
 - **What it adds:** native code in the build. Their JS isn't in our bundle until something imports them. Node prints a harmless `DEP0151` deprecation notice about worklets' `package.json` during installs; it's packaging metadata, not an app problem.
+
+### `expo-blur` (~57.0.3)
+- **Purpose:** `BlurView` (a real backdrop blur) and, on Android, `BlurTargetView` (marks the view whose pixels get blurred).
+- **Why we needed it:** a frosted-glass header over the scrolling page, the app's version of the website's `backdrop-filter: blur()`.
+- **Why not built-in:** React Native has no blur or backdrop filter. Semi-transparent colour is the closest built-in, and it's what Android shows with `blurMethod` left at its default.
+- **Why only on the header:** card blur over a solid background would be invisible and cost performance (19 live blur views).
+- **What it adds:** a native module (already in Expo Go). Real blur on Android 12+ with `dimezisBlurViewSdk31Plus`; translucent fallback on older Android.
