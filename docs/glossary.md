@@ -6,6 +6,10 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **`app.json`.** Expo's app configuration: name, version, icon, splash, orientation and platform-specific blocks. At build time Expo generates the native Android configuration (`AndroidManifest.xml`, Gradle settings) from it. Roughly the mobile equivalent of a web app manifest plus build config.
 
+**Config plugin.** Code listed under `plugins` in `app.json` that modifies the generated native project (Android manifest, Gradle files) at build time. For example, Expo Router's plugin registers the URL scheme. It has no effect in Expo Go, which is already built.
+
+**Deep link.** A URL that opens the app on a specific screen, e.g. `digitalpoint://privacy`. Expo Router makes every route deep-linkable automatically.
+
 **dp (density-independent pixel).** The unit of every number in React Native styles. One dp is roughly one CSS px on a standard-density screen, so sizes look the same physically across phones with different pixel densities. There are no `rem`, `em` or `vw` units.
 
 **Edge-to-edge.** Modern Android layout mode where the app draws across the whole screen, behind the status bar and the navigation/gesture bar. The app must pad its content using safe-area insets.
@@ -22,7 +26,11 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **Insets.** The measured sizes (top, bottom, left, right, in dp) of the screen areas covered by system UI or cutouts on a specific device. Provided by `react-native-safe-area-context`.
 
+**Intent filter.** An entry in `AndroidManifest.xml` declaring which URLs or actions an app can handle. Android uses it to route a deep link to the right app. Expo generates it from `scheme` in `app.json`.
+
 **JS bundle.** All of the app's JavaScript (my code plus `node_modules`) combined by Metro into one file that the JS engine runs. In development it's served over HTTP. In a release build it's compiled to Hermes bytecode and embedded in the app.
+
+**Layout (`_layout.tsx`).** An Expo Router file that wraps all routes in its folder, e.g. with a `<Stack>` navigator. Like a Next.js `layout.tsx`.
 
 **LTS (Long-Term Support).** A Node.js release line with an extended maintenance window. Even-numbered majors become LTS several months after release. Tools like Expo test against LTS releases.
 
@@ -34,9 +42,15 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **React Native.** A framework that uses React to build native mobile UIs. Components like `<View>` and `<Text>` become real platform views, not DOM elements, so there is no HTML, CSS cascade or browser.
 
+**Route.** A screen addressed by a path. In Expo Router the file decides the path: `app/index.tsx` → `/`, `app/privacy.tsx` → `/privacy`.
+
 **Safe area.** The part of the screen not covered by the status bar, navigation bar, notch or rounded corners. Content placed inside it is always visible and tappable.
 
+**Scheme (URL scheme).** The app's custom URL prefix (`digitalpoint://`), set in `app.json`. Changing it after release breaks existing links.
+
 **Slug.** The URL-friendly identifier of the project on Expo's services (`app.json` → `expo.slug`). It's not the Android application ID and is never shown to users.
+
+**Stack navigator.** Navigation where screens pile up like cards. Pushing adds a screen on top, and Android Back pops it, revealing the previous screen with its state intact.
 
 **StyleSheet.** React Native API (`StyleSheet.create`) for defining style objects next to a component. There are no selectors, cascade or specificity. Styles are combined with arrays: `[base, pressed && active]`.
 

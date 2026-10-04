@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-An Expo SDK 57 project (blank TypeScript template, Node 24 LTS) is initialized and verified on a physical Android phone through Expo Go. No app-specific UI exists yet; `App.tsx` is still the template screen.
+An Expo SDK 57 project (Node 24 LTS) runs on a physical Android phone through Expo Go. Expo Router is set up: `app/_layout.tsx` (Stack, Home's native header hidden) and `app/index.tsx` (Home, which only renders the Hero section so far). Shared UI is in `components/` (`AppButton`, `Hero`) and design tokens from the website's CSS are in `constants/theme.ts`. Every file in `app/` becomes a route, so put non-screen components in `components/`. The URL scheme is `digitalpoint` and typed routes are on.
 
 `MASTER-PROMPT.md` is the full specification and working agreement for this project. It stays local and is git-ignored because it names the original site's owner. Read it before taking any action if it is present. This file summarizes the parts that matter in every session.
 
@@ -59,7 +59,7 @@ The user runs Claude with `--dangerously-skip-permissions` and relies on Claude 
 
 ## Phase roadmap
 
-0 Audit ✅ → 1 Architecture ✅ → 2 Expo init ✅ (incl. first run on device via Expo Go) → 3 RN fundamentals → 4 Home screen (must work on Android before moving on) → 5 Privacy screen + navigation → 6 Polish → 7 Device testing → 8 Installable APK → 9 Production config (app ID, version, signing explained). Phases 10–15 (AAB upload, Play Console, testing tracks, release) are out of scope because the app won't be published. Cover them as concepts only.
+0 Audit ✅ → 1 Architecture ✅ → 2 Expo init ✅ (incl. first run on device via Expo Go) → 3 RN fundamentals ✅ (Hero section + Expo Router migration) → 4 Home screen (must work on Android before moving on) → 5 Privacy screen + navigation → 6 Polish → 7 Device testing → 8 Installable APK → 9 Production config (app ID, version, signing explained). Phases 10–15 (AAB upload, Play Console, testing tracks, release) are out of scope because the app won't be published. Cover them as concepts only.
 
 ## Commits
 
@@ -71,6 +71,7 @@ Node **24.21.0 LTS** via nvm-windows (`nvm use 24.21.0`; recorded in `.nvmrc`, w
 
 ```bash
 npx expo start        # Metro dev server; scan the QR code with Expo Go (same Wi-Fi)
+npx expo start --clear  # required after changing app.json or the entry point
 npx tsc --noEmit      # type-check
 npx expo-doctor       # Expo SDK / dependency compatibility check
 npx expo install <pkg>  # install a package at the version matching the Expo SDK (prefer over npm install)

@@ -10,7 +10,9 @@ This is a **learning project**: an experienced web developer rebuilding an exist
 |---|---|
 | 0–1 Website audit and mobile architecture | ✅ Done |
 | 2 Expo project initialized, runs on a physical Android phone (Expo Go) | ✅ Done |
-| 3–7 Fundamentals, Home screen, Privacy Policy screen and navigation, polish, device testing | ⏳ Next |
+| 3 React Native fundamentals (Hero section, safe areas) | ✅ Done |
+| Expo Router (file-based stack navigation) | ✅ Done |
+| 4–7 Full Home screen, Privacy Policy screen, polish, device testing | ⏳ Next |
 | 8 Installable APK | ⏳ Not yet |
 | 9 Production configuration (application ID, versioning, signing) | ⏳ Not yet |
 
@@ -25,6 +27,7 @@ Planned app: two screens. **Home** has every section in one scroll and an enquir
 | UI library | React | 19.2 |
 | Language | TypeScript (strict) | 6.0 |
 | JS engine on device | Hermes | bundled with RN |
+| Navigation | Expo Router (stack, typed routes) | 57 |
 | Dev bundler | Metro | bundled with Expo |
 | Node (dev machine) | Node.js LTS | 24.21.0 (see `.nvmrc`) |
 
@@ -63,8 +66,11 @@ Lint and tests will be added in later phases.
 
 ```text
 .
-├── App.tsx          root component (template screen for now)
-├── index.ts         entry: registerRootComponent(App)
+├── app/             routes: every file here is a screen (Expo Router)
+│   ├── _layout.tsx  root layout: Stack navigator + status bar
+│   └── index.tsx    "/" Home screen
+├── components/      reusable UI (AppButton, Hero) — not routes
+├── constants/       theme.ts: colours, radius, spacing from the website's CSS
 ├── app.json         Expo app config → becomes the Android manifest/Gradle config at build time
 ├── assets/          app icon, adaptive-icon layers, splash image (Expo placeholders)
 ├── docs/glossary.md mobile terminology
@@ -73,7 +79,11 @@ Lint and tests will be added in later phases.
 └── package.json
 ```
 
-`/android` and `/ios` are **generated** from `app.json` when needed ("prebuild") and are git-ignored.
+`/android` and `/ios` are **generated** from `app.json` when needed ("prebuild") and are git-ignored. So are `.expo/` and `expo-env.d.ts`, which Metro generates (typed-route definitions).
+
+The app registers the URL scheme `digitalpoint://` (deep links to any route in a native build).
+
+After changing `app.json` or the entry point, restart Metro with `npx expo start --clear`.
 
 ## Builds: APK vs AAB (Phases 8–9 — not yet)
 

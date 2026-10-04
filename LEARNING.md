@@ -4,6 +4,7 @@ My personal reference for moving from web development to React Native and Androi
 
 - [Milestone 1 — Project setup and first run on a real phone](#milestone-1--project-setup-and-first-run-on-a-real-phone-2026-10-04)
 - [Milestone 2 — React Native fundamentals: the Hero section](#milestone-2--react-native-fundamentals-the-hero-section-2026-10-04)
+- [Milestone 3 — Expo Router: file-based navigation](#milestone-3--expo-router-file-based-navigation-2026-10-04)
 - [Package log](#package-log)
 
 ---
@@ -144,6 +145,61 @@ Safe area, insets, edge-to-edge, dp, Pressable, `StyleSheet`, TalkBack. See [`do
 
 ---
 
+## Milestone 3 — Expo Router: file-based navigation (2026-10-04)
+
+### What I learned
+
+**1. Why screens need a navigator, not a `useState` switch.** Swapping components with state works visually, but on Android the Back button would **exit the app** instead of going back. There would also be no transitions and no deep links. A **stack navigator** handles all of that: screens pile up like cards, Back pops the top one, and the screen underneath stays mounted with its scroll position kept. On the bottom screen, Back leaves the app.
+
+**2. Expo Router = Next.js-style routing on top of React Navigation.**
+```text
+app/_layout.tsx  → wraps every screen (holds <Stack>, StatusBar)   ≈ Next.js layout.tsx
+app/index.tsx    → route "/"   (Home)
+app/privacy.tsx  → route "/privacy" (Phase 5: created just by adding the file)
+```
+`package.json` `"main"` changed from `index.ts` to `expo-router/entry`. The router's entry finds `app/` and builds the routes, so `App.tsx` and `index.ts` were deleted. Expo Router also includes the `SafeAreaProvider` automatically.
+
+**3. Stack vs tabs.** Tabs are for switching between top-level sections (like a bottom bar). A stack is for drilling in and coming back. Home → Privacy Policy is a drill-in, so it's a stack.
+
+**4. Deep links and the URL scheme.** `"scheme": "digitalpoint"` in `app.json` registers a custom URL scheme with Android (an *intent filter* in `AndroidManifest.xml` at build time). In a real build, `digitalpoint://privacy` opens the app directly on that screen. Every file in `app/` is a deep-linkable route automatically. Changing the scheme later breaks links already shared.
+
+**5. Typed routes catch broken links at compile time.** With `experiments.typedRoutes`, Expo generates types from the files in `app/`. I tested it: `router.push('/privcy')` gives `error TS2345`, and `'/'` compiles. The types are generated when Metro starts, into `.expo/types/` and `expo-env.d.ts` (both git-ignored). Expo added them to `tsconfig.json` `include`.
+
+**6. Config plugins.** `npx expo install` added `"plugins": ["expo-router", "expo-status-bar"]` to `app.json`. A config plugin is code that **edits the generated native Android/iOS project at build time**. For example, the router's plugin adds the scheme's intent filter to the manifest. In Expo Go they do nothing, because Expo Go is already built. They take effect when we make our own APK.
+
+**7. `react-native-screens` makes screens native.** Each route is a real Android screen container rather than a plain JS `View`. That gives native transitions, and screens that aren't visible use less memory.
+
+**8. Changing the entry point needs a Metro restart.** Fast Refresh only swaps modules. A new `"main"` needs `npx expo start --clear`, otherwise Metro serves a cached graph that still points to `./App`.
+
+### Why it matters
+Navigation is where mobile differs most from the web. There's no URL bar and no browser history, and Back is a system button the app must handle. Getting it from the router means the Android Back button, transitions and deep links all behave like users expect, without writing any of that by hand.
+
+### What changed
+- Added `expo-router`, `react-native-screens`, `expo-linking` and `expo-constants`.
+- `package.json`: `"main": "expo-router/entry"`.
+- `app.json`: `scheme`, `plugins`, `experiments.typedRoutes`.
+- `tsconfig.json`: `include` now covers the generated route types.
+- New `app/_layout.tsx` (Stack; Home's native header hidden) and `app/index.tsx` (Home: SafeAreaView → ScrollView → Hero).
+- Deleted `App.tsx` and `index.ts`. The phone looks identical, which was the goal.
+
+### Important commands
+```bash
+npx expo install expo-router react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar
+npx expo start --clear     # after changing the entry point or app.json
+```
+
+### Important terminology
+Route, layout, stack navigator, deep link, URL scheme, config plugin, intent filter. See [`docs/glossary.md`](docs/glossary.md).
+
+### Common mistakes
+- Leaving `"main": "index.ts"` (or a stale Metro cache) after adding the router gives "Unable to resolve ./App".
+- Putting components (not screens) inside `app/`. **Every file there becomes a route.** Shared UI belongs in `components/`.
+- Using `useState` to switch screens. Android Back closes the app.
+- Committing `expo-env.d.ts` or `.expo/`. They're generated per machine.
+- Expecting `app.json` plugin changes to show up in Expo Go. Plugins only affect real native builds.
+
+---
+
 ## Package log
 
 Template packages from `create-expo-app --template blank-typescript`. I didn't add any of my own in this milestone.
@@ -189,3 +245,27 @@ Template packages from `create-expo-app --template blank-typescript`. I didn't a
 - **Why we needed it:** with edge-to-edge, Android draws the app behind the system bars, so content must be padded by the real, per-device insets.
 - **Why not built-in:** React Native's `SafeAreaView` is deprecated and iOS-only. Hard-coded padding is wrong on most devices. Expo's docs recommend this library, and Expo Router needs it anyway as a peer dependency.
 - **What it adds:** a small native module (already included in Expo Go) and a JS API. Installed with `npx expo install` so the version matches SDK 57.
+
+### `expo-router` (~57.0.24)
+- **Purpose:** file-based navigation. Files in `app/` become routes. Provides layouts, `<Stack>`, `<Link>`, `router.push()`, automatic deep links and typed routes.
+- **Why we needed it:** the app has two screens, and Android needs real stack navigation (Back button, transitions, deep links).
+- **Why not the alternatives:** a `useState` screen switch breaks Android Back and has no deep links. Plain React Navigation works, but every screen and link must be configured by hand. Expo Router is built on React Navigation and is Expo's recommended approach.
+- **What it adds:** the app's entry point (`expo-router/entry`), React Navigation underneath, and a config plugin that registers the URL scheme in native builds.
+
+### `react-native-screens` (~4.26.0)
+- **Purpose:** renders each navigator screen as a native Android screen container instead of a plain `View`.
+- **Why we needed it:** a required peer dependency of Expo Router / React Navigation.
+- **Why not built-in:** without it, every screen in the stack stays a fully mounted and drawn JS view, with no native transitions and more memory use.
+- **What it adds:** a native module (already in Expo Go).
+
+### `expo-linking` (~57.0.11)
+- **Purpose:** creates and parses app URLs (`digitalpoint://privacy`) and maps them to routes.
+- **Why we needed it:** a required peer dependency of Expo Router (deep linking).
+- **Why not built-in:** RN's `Linking` can open URLs, but Expo Router relies on this wrapper for URL creation and parsing. We'll still use `Linking.openURL` for phone, WhatsApp and maps in Phase 4.
+- **What it adds:** a small module (already in Expo Go).
+
+### `expo-constants` (~57.0.20)
+- **Purpose:** exposes `app.json` config and device/runtime constants to JavaScript.
+- **Why we needed it:** a required peer dependency of Expo Router (it reads values like `scheme` at runtime).
+- **Why not built-in:** `app.json` values aren't available to JS without it.
+- **What it adds:** a small module (already in Expo Go).
