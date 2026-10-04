@@ -69,8 +69,12 @@ Lint and tests will be added in later phases.
 ├── app/             routes: every file here is a screen (Expo Router)
 │   ├── _layout.tsx  root layout: Stack navigator + status bar
 │   └── index.tsx    "/" Home screen
-├── components/      reusable UI (AppButton, Hero) — not routes
-├── constants/       theme.ts: colours, radius, spacing from the website's CSS
+├── components/      UI pieces (AppButton, Header, Hero, Icon) — not routes
+├── constants/
+│   ├── business.ts  ← contact data (phone, WhatsApp, address, hours, map). Edit here only.
+│   ├── services.ts  typed service list
+│   └── theme.ts     colours, radius, spacing from the website's CSS
+├── utils/openLink.ts  opens tel:/WhatsApp/maps URLs with a failure alert
 ├── app.json         Expo app config → becomes the Android manifest/Gradle config at build time
 ├── assets/          app icon, adaptive-icon layers, splash image (Expo placeholders)
 ├── docs/glossary.md mobile terminology
@@ -96,5 +100,7 @@ Build, EAS and signing instructions will be added here when those phases are rea
 
 - **Never commit signing keys** (`*.jks`, `*.keystore`, `*.p12`, `*.key`, `*.pem`) or service-account JSON. `.gitignore` already blocks the common ones.
 - **Don't run `npm audit fix --force`.** It "fixes" build-tool advisories by downgrading Expo by several major versions. Use `npx expo install --fix` instead.
-- **Install packages with `npx expo install <pkg>`** rather than plain `npm install`, so versions match the Expo SDK.
+- **Install packages with `npx expo install <pkg>`** rather than plain `npm install`, so versions match the Expo SDK. Read every `npm warn ERESOLVE` line: npm silently auto-installs peer dependencies at their *latest* versions, which can break the SDK version set.
+- **Contact data:** `constants/business.ts` contains the developer's own phone number for testing. The address and map point are placeholders.
+- The app requests **no Android permissions**. Call/WhatsApp/Maps open other apps through URLs.
 - No environment variables or secrets are used. The app needs none.

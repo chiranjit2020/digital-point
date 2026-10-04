@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
 import { colors } from '../constants/theme';
 
@@ -10,6 +11,9 @@ export default function HomeScreen() {
     // No native header on this screen, so this view pads for the status bar
     // and navigation bar itself.
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right', 'bottom']}>
+      {/* Outside the ScrollView, so it stays fixed while the page scrolls
+          beneath it, like the website's position: sticky header. */}
+      <Header />
       {/* Unlike a web page, a View never scrolls: overflowing content is just cut off. */}
       <ScrollView contentContainerStyle={styles.content}>
         <Hero />

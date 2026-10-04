@@ -6,6 +6,8 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **`app.json`.** Expo's app configuration: name, version, icon, splash, orientation and platform-specific blocks. At build time Expo generates the native Android configuration (`AndroidManifest.xml`, Gradle settings) from it. Roughly the mobile equivalent of a web app manifest plus build config.
 
+**Autolinking.** The build step that finds native modules in your dependencies and compiles them into the Android/iOS project automatically. Expo autolinks direct dependencies, which is why native peer dependencies (like `expo-font`) must be listed in `package.json` explicitly.
+
 **Config plugin.** Code listed under `plugins` in `app.json` that modifies the generated native project (Android manifest, Gradle files) at build time. For example, Expo Router's plugin registers the URL scheme. It has no effect in Expo Go, which is already built.
 
 **Deep link.** A URL that opens the app on a specific screen, e.g. `digitalpoint://privacy`. Expo Router makes every route deep-linkable automatically.
@@ -24,6 +26,8 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **Hermes.** The JavaScript engine React Native uses on the device, built for mobile: fast startup and low memory. It plays the role V8 plays in Chrome.
 
+**Hit slop.** Extra touchable area around a `Pressable` beyond its visible edges (`hitSlop` prop). It lets a small-looking button meet the 48 dp minimum touch target.
+
 **Insets.** The measured sizes (top, bottom, left, right, in dp) of the screen areas covered by system UI or cutouts on a specific device. Provided by `react-native-safe-area-context`.
 
 **Intent filter.** An entry in `AndroidManifest.xml` declaring which URLs or actions an app can handle. Android uses it to route a deep link to the right app. Expo generates it from `scheme` in `app.json`.
@@ -32,11 +36,15 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 
 **Layout (`_layout.tsx`).** An Expo Router file that wraps all routes in its folder, e.g. with a `<Stack>` navigator. Like a Next.js `layout.tsx`.
 
+**Linking.** React Native API for opening URLs in other apps (`Linking.openURL`): `tel:` opens the dialer, `https://wa.me/…` opens WhatsApp, `geo:`/maps URLs open a maps app. Android picks the app. Opening the dialer needs no permission.
+
 **LTS (Long-Term Support).** A Node.js release line with an extended maintenance window. Even-numbered majors become LTS several months after release. Tools like Expo test against LTS releases.
 
 **Metro.** React Native's JavaScript bundler and dev server (the equivalent of Vite or webpack). It transforms TypeScript/JSX, resolves modules, serves the bundle on port 8081 and drives Fast Refresh.
 
 **Native module.** Code written in Kotlin/Java (Android) or Swift/Obj-C (iOS) that exposes device features (camera, haptics, secure storage) to JavaScript. It has to be compiled into the app binary, so it can't be added over Fast Refresh the way JS can.
+
+**Peer dependency.** A package another package expects you to install yourself, at a compatible version. npm may auto-install peers at its *latest* version, which in an Expo project can conflict with the SDK. Fix with `npx expo install <pkg>`.
 
 **Pressable.** React Native core component for anything touchable. It detects presses (`onPress`, `onLongPress`) and exposes a `pressed` state for visual feedback. There is no hover on touch screens.
 
@@ -55,3 +63,7 @@ Mobile terms as they come up in this project, explained for a web developer. Alp
 **StyleSheet.** React Native API (`StyleSheet.create`) for defining style objects next to a component. There are no selectors, cascade or specificity. Styles are combined with arrays: `[base, pressed && active]`.
 
 **TalkBack.** Android's built-in screen reader. It reads `accessibilityRole`, `accessibilityLabel` and text content, which is why `Pressable` needs `accessibilityRole="button"`.
+
+**useWindowDimensions.** React Native hook returning the current window width and height in dp. It re-renders on rotation or resize. This is RN's replacement for CSS media queries.
+
+**Yoga.** The layout engine inside React Native that implements flexbox. It's close to CSS flexbox but not identical: for example, percentage widths combined with `aspectRatio` in wrapping rows behave differently from the browser.

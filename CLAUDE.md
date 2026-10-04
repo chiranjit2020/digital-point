@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-An Expo SDK 57 project (Node 24 LTS) runs on a physical Android phone through Expo Go. Expo Router is set up: `app/_layout.tsx` (Stack, Home's native header hidden) and `app/index.tsx` (Home, which only renders the Hero section so far). Shared UI is in `components/` (`AppButton`, `Hero`) and design tokens from the website's CSS are in `constants/theme.ts`. Every file in `app/` becomes a route, so put non-screen components in `components/`. The URL scheme is `digitalpoint` and typed routes are on.
+An Expo SDK 57 project (Node 24 LTS) runs on a physical Android phone through Expo Go. Expo Router is set up: `app/_layout.tsx` (Stack, Home's native header hidden) and `app/index.tsx` (Home: a fixed `Header` above a ScrollView containing `Hero`). Shared UI is in `components/` (`AppButton`, `Header`, `Hero`, `Icon`). Data is in `constants/` (`business.ts` holds contact data and URL helpers, `services.ts` the typed service list, `theme.ts` design tokens), and `utils/openLink.ts` wraps `Linking.openURL` with an alert on failure. Icons use `@expo/vector-icons` MaterialCommunityIcons, and only through `components/Icon.tsx`.
+
+Phase 4 decisions (2026-10-04): brand mark = text "DIGITAL POINT" + icon badge (no image logo); hero illustration = 4×2 tile grid; contact phone/WhatsApp = the developer's own number (+91 8918669308, intentionally public), address and map = placeholders. Remaining Phase 4 steps: 8 service cards → 9 price/why/CTA + sticky bar → 10 enquiry→WhatsApp form → 11 map/footer + hero scroll-to-section. Every file in `app/` becomes a route, so put non-screen components in `components/`. The URL scheme is `digitalpoint` and typed routes are on.
 
 `MASTER-PROMPT.md` is the full specification and working agreement for this project. It stays local and is git-ignored because it names the original site's owner. Read it before taking any action if it is present. This file summarizes the parts that matter in every session.
 
@@ -79,5 +81,7 @@ npx expo install <pkg>  # install a package at the version matching the Expo SDK
 
 No lint, test or EAS commands exist yet. Add them here when they're set up.
 
+- Never filter `npm warn` lines out of install output. `ERESOLVE overriding peer dependency` means npm installed a peer at a version Expo didn't test; fix it with `npx expo install <pkg>`, then check `npm ls` shows no `invalid`.
+- Don't use `width: '%'` + `aspectRatio` in wrapping rows (Yoga gets it wrong). Compute sizes from `useWindowDimensions()`.
 - Don't run `npm audit fix --force`. Its "fix" downgrades Expo several major versions. The flagged packages are build-time tooling, which SDK patch updates (`npx expo install --fix`) address.
 - The dev machine's network profile is "Public". If the phone can't reach Metro, check Windows Firewall rules for nvm's `node.exe`.

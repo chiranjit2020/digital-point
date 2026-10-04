@@ -1,11 +1,39 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { colors, radius, spacing } from '../constants/theme';
 import { AppButton } from './AppButton';
+import { Icon, type IconName } from './Icon';
 
-// Web `<section class="hero">`. The CSS-drawn laptop illustration is not
-// ported yet; that decision is made in Phase 4.
+// The website's 8 illustration tiles, in its left-to-right order. The site
+// floats them on an arc around a CSS-drawn laptop; here they sit in a simple
+// 4-column grid, which works on any screen width. All tiles share the theme
+// blue with white icons (a deliberate change from the site's mixed colours).
+const tileIcons: readonly IconName[] = [
+  'clipboard-check',
+  'file-document',
+  'fingerprint',
+  'bank',
+  'ticket-confirmation',
+  'printer',
+  'train',
+  'airplane',
+];
+
+const TILE_COLUMNS = 4;
+const TILE_GAP = spacing.md;
+const TILE_MAX = 88; // keep tiles from growing huge on tablets
+
+// Web `<section class="hero">`.
 export function Hero() {
+  // Tile size is computed in dp rather than `width: '22%'` + `aspectRatio: 1`:
+  // Yoga resolves aspectRatio unreliably for percentage widths in a wrapping
+  // row, which left the tiles shorter than wide and the icons off-centre.
+  const { width } = useWindowDimensions();
+  const tileSize = Math.min(
+    TILE_MAX,
+    Math.floor((width - spacing.lg * 2 - TILE_GAP * (TILE_COLUMNS - 1)) / TILE_COLUMNS),
+  );
+
   return (
     <View style={styles.section}>
       {/* `alignSelf: 'flex-start'` stops the badge stretching full width:
@@ -26,6 +54,25 @@ export function Hero() {
         {/* TODO(Phase 4): scroll to the Services / Contact sections. */}
         <AppButton label="Our Services" onPress={() => {}} style={styles.button} />
         <AppButton label="Contact Us" variant="outline" onPress={() => {}} style={styles.button} />
+      </View>
+
+      {/* Decorative, like the site's aria-hidden illustration: hidden from TalkBack. */}
+      <View
+        style={styles.tiles}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {tileIcons.map((icon) => (
+          <View key={icon} style={[styles.tile, { width: tileSize, height: tileSize }]}>
+            <Icon
+              name={icon}
+              color={colors.white}
+              size={26}
+              // RN transforms are an array of objects, not a CSS string.
+              style={icon === 'airplane' ? styles.planeIcon : undefined}
+            />
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -74,5 +121,21 @@ const styles = StyleSheet.create({
   button: {
     flexGrow: 1,
     flexBasis: 140, // same as the site's `flex: 1 1 140px`
+  },
+  tiles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: TILE_GAP,
+    marginTop: spacing.xl,
+  },
+  tile: {
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary2, // same blue as the badge and primary buttons
+    boxShadow: '0 8px 18px rgba(11, 63, 168, 0.16)',
+  },
+  planeIcon: {
+    transform: [{ rotate: '45deg' }],
   },
 });

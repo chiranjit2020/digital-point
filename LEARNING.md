@@ -5,6 +5,7 @@ My personal reference for moving from web development to React Native and Androi
 - [Milestone 1 — Project setup and first run on a real phone](#milestone-1--project-setup-and-first-run-on-a-real-phone-2026-10-04)
 - [Milestone 2 — React Native fundamentals: the Hero section](#milestone-2--react-native-fundamentals-the-hero-section-2026-10-04)
 - [Milestone 3 — Expo Router: file-based navigation](#milestone-3--expo-router-file-based-navigation-2026-10-04)
+- [Milestone 4 — Header, icons, business data and Linking](#milestone-4--header-icons-business-data-and-linking-2026-10-04)
 - [Package log](#package-log)
 
 ---
@@ -200,6 +201,84 @@ Route, layout, stack navigator, deep link, URL scheme, config plugin, intent fil
 
 ---
 
+## Milestone 4 — Header, icons, business data and Linking (2026-10-04)
+
+### What I learned
+
+**1. `Linking` hands URLs to Android.** On the web the browser handles `<a href="tel:…">`. In RN, `Linking.openURL(url)` asks Android which app handles that URL:
+```text
+tel:+918918669308                  → Phone dialer (number pre-filled; the user presses call)
+https://wa.me/918918669308?text=…  → WhatsApp (or the browser if it's not installed)
+```
+- **No permission is needed.** Opening the dialer is different from *placing* a call (`CALL_PHONE`). The app still requests zero Android permissions.
+- `openURL` returns a Promise that can reject (for example, a tablet with no dialer), so `utils/openLink.ts` catches it and shows a native `Alert`.
+- Message text must be **percent-encoded** (`encodeURIComponent`). Newlines, emoji and Bengali would otherwise break the URL. Tested: the encoded link decodes back to the exact greeting.
+
+**2. `useWindowDimensions()` replaces media queries.** There's no CSS, so there's no `@media`. The hook returns the window size in dp and re-renders when it changes (rotation, split-screen). The Header shows icon-only buttons below 420 dp. The visible label goes away, but `accessibilityLabel` keeps it for TalkBack.
+
+**3. Yoga is not a browser.** React Native's layout engine (Yoga) implements flexbox, but not identically to CSS. `width: '22%'` + `aspectRatio: 1` inside a wrapping row produced tiles that were **shorter than they were wide, with the icons off-centre**. Yoga resolved the aspect ratio before the percentage width. Fix: compute a numeric size from `useWindowDimensions()`: `(screen − padding − gaps) / 4`. Lesson: when a layout looks wrong on the device, suspect a Yoga/CSS difference before suspecting the component.
+
+**4. Icon fonts.** `@expo/vector-icons` draws icons as glyphs of a font, so they scale cleanly and take a `color`. One *set* = one font file. MaterialCommunityIcons is about 1.3 MB, the cost of one set covering every icon. A typed wrapper (`components/Icon.tsx`) means a misspelled icon name fails `tsc` (`vector-pen` didn't exist, so it's `fountain-pen-tip`). Decorative icons are hidden from TalkBack, the equivalent of `aria-hidden`.
+
+**5. Typed data instead of positional arrays.** The website stored services as `[icon, class, title, desc]` arrays. Here they're `Service` objects in `constants/services.ts`, so the compiler checks every field. `QuickService` reuses the type with `Omit<Service, 'id'> & { serviceId }`.
+
+**6. npm peer dependencies are a trap in RN projects, and warnings matter.** Three problems from Step 6 surfaced here, because I had **filtered out `npm warn` lines** and missed them:
+- `react-dom` was auto-installed at **19.3.0** (npm's latest), but React is pinned to **19.2.3**. The next install failed with `ERESOLVE`. Fix: `npx expo install react-dom` → 19.2.3.
+- `react-native-reanimated` / `react-native-worklets` were auto-installed at the latest versions (4.7.1 / 0.13.0) instead of the SDK's **4.5.1 / 0.10.1**. That's harmless in Expo Go (it has its own copies), but these are **native** modules that will be compiled into the APK. Pinned with `npx expo install`.
+- `expo-doctor`: *"Native module peer dependencies must be installed directly"*. `@expo/vector-icons` needs `expo-font`. A native module only gets **autolinked** into a build if it's a direct dependency.
+
+  The rule: **npm picks "latest that satisfies the range"; Expo needs "the version tested with this SDK".** Always use `npx expo install`, and read every `npm warn` line.
+
+**7. Hit slop.** `hitSlop` enlarges a `Pressable`'s touch area beyond its visible edges. The 40 dp header buttons get +4 dp on each side, which makes the 48 dp minimum touch target.
+
+### Why it matters
+Contact actions are the app's whole purpose: a shop app where Call and WhatsApp don't work is useless. The dependency lesson matters even more for Phase 8. In Expo Go, wrong native versions are invisible. In a real build, they cause Gradle failures that are hard to trace back to a peer dependency npm installed quietly weeks earlier.
+
+### What changed
+- Added `@expo/vector-icons`, `react-dom` (pinned), `expo-font`, `react-native-reanimated` and `react-native-worklets` (pinned). `app.json` gained the `expo-font` config plugin.
+- New: `components/Icon.tsx`, `components/Header.tsx`, `constants/business.ts`, `constants/services.ts`, `utils/openLink.ts`.
+- `AppButton`: `icon`, `iconOnly`, `size="sm"`, `whatsapp` variant, default `accessibilityLabel`, `hitSlop`.
+- `Hero`: 4 × 2 tile grid with computed tile size, all tiles theme blue (#0F55D8) with white icons for consistency (the website mixes colours). `app/index.tsx`: fixed Header above the ScrollView.
+- Verified on the phone: Call opens the dialer with the number, WhatsApp opens a chat with the greeting pre-filled, and the tiles are square with centred icons.
+
+### Important commands
+```bash
+npx expo install <pkg>    # always, for anything in an Expo project
+npm ls <pkg>              # who depends on it, and is it "invalid"?
+npx expo-doctor           # catches missing native peer dependencies
+```
+
+### Icon mapping (Bootstrap Icons → MaterialCommunityIcons)
+| Website | App |
+|---|---|
+| `file-earmark-text-fill` (form fill-up) | `file-document-edit` |
+| `fingerprint` | `fingerprint` |
+| `person-badge-fill` (voter) | `card-account-details` |
+| `file-earmark-ruled-fill` (ration) | `file-table` |
+| `mortarboard-fill` | `school` |
+| `house-door-fill` (land) | `home-city` |
+| `printer-fill` | `printer` |
+| `person-square` (photo) | `account-box` |
+| `train-front-fill` / `airplane-fill` | `train` / `airplane` |
+| `easel2-fill` (banner) | `bulletin-board` |
+| `postcard-fill` (business card) | `card-account-mail` |
+| `vector-pen` (logo) | `fountain-pen-tip` |
+| `display` / `grid-fill` | `monitor` / `view-grid` |
+| `telephone-fill` / `whatsapp` | `phone` / `whatsapp` |
+
+### Important terminology
+Linking, `useWindowDimensions`, Yoga, hit slop, peer dependency, autolinking. See [`docs/glossary.md`](docs/glossary.md).
+
+### Common mistakes
+- Filtering or skimming `npm warn` output. `ERESOLVE overriding peer dependency` is a real problem waiting to surface.
+- Using `npm install` instead of `npx expo install`, which gets npm's latest version, not the SDK-tested one.
+- Fixing `ERESOLVE` with `--legacy-peer-deps`. That hides the mismatch instead of fixing it.
+- Relying on `%` width + `aspectRatio` in wrapping rows.
+- Requesting `CALL_PHONE` just to open the dialer. `tel:` needs no permission.
+- Building `wa.me` links without `encodeURIComponent`.
+
+---
+
 ## Package log
 
 Template packages from `create-expo-app --template blank-typescript`. I didn't add any of my own in this milestone.
@@ -269,3 +348,27 @@ Template packages from `create-expo-app --template blank-typescript`. I didn't a
 - **Why we needed it:** a required peer dependency of Expo Router (it reads values like `scheme` at runtime).
 - **Why not built-in:** `app.json` values aren't available to JS without it.
 - **What it adds:** a small module (already in Expo Go).
+
+### `@expo/vector-icons` (^15.0.2)
+- **Purpose:** icon sets drawn as font glyphs. We use one set, `MaterialCommunityIcons`, through `components/Icon.tsx`.
+- **Why we needed it:** about 25 icons (services, phone, WhatsApp, the hero tiles) that need to be colourable and sharp at any density.
+- **Why not the alternatives:** RN has no icon set. PNGs would mean ~25 icons × 3 densities to manage. Exact Bootstrap SVGs would need `react-native-svg` plus ~25 hand-made components.
+- **What it adds:** JS components plus one font per set used (MaterialCommunityIcons ≈ 1.3 MB). The fonts are already inside Expo Go.
+
+### `expo-font` (~57.0.4)
+- **Purpose:** loads font files at runtime, and through its config plugin can embed fonts at build time.
+- **Why we needed it:** a required **native** peer dependency of `@expo/vector-icons` (it loads the icon font). `expo-doctor` flagged it: native peers must be direct dependencies to be autolinked into a real build.
+- **Why not built-in:** RN can't load arbitrary font files at runtime by itself.
+- **What it adds:** a native module (already in Expo Go) and the `expo-font` config plugin in `app.json`. We'll also use it for Plus Jakarta Sans in the Polish phase.
+
+### `react-dom` (19.2.3)
+- **Purpose:** React's **browser** renderer.
+- **Why we needed it:** never for Android. Expo Router's web-only modules declare it as a peer, so npm auto-installed it at **19.3.0**, which conflicts with React 19.2.3 (`ERESOLVE`). Pinning it to match React fixes the tree.
+- **Why not `--legacy-peer-deps`:** that hides the mismatch rather than fixing it.
+- **What it adds:** nothing to the Android app. Metro only bundles what the `android` platform imports.
+
+### `react-native-reanimated` (4.5.1) and `react-native-worklets` (0.10.1)
+- **Purpose:** high-performance animations running on the UI thread (reanimated), and the engine that runs JS "worklets" there (worklets).
+- **Why we needed them:** we don't use them directly. Expo Router's `react-native-drawer-layout` needs reanimated, so npm auto-installed both at the **latest** versions (4.7.1 / 0.13.0), which `npm ls` reported as `invalid` against SDK 57.
+- **Why pin them:** they're **native** modules, so they get compiled into the APK whether or not our code imports them. Pinning to the SDK-tested versions avoids Gradle and runtime surprises in Phase 8.
+- **What it adds:** native code in the build. Their JS isn't in our bundle until something imports them. Node prints a harmless `DEP0151` deprecation notice about worklets' `package.json` during installs; it's packaging metadata, not an app problem.
