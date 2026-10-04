@@ -3,6 +3,7 @@
 My personal reference for moving from web development to React Native and Android. One entry per milestone, plus a log of every package and why it's there.
 
 - [Milestone 1 — Project setup and first run on a real phone](#milestone-1--project-setup-and-first-run-on-a-real-phone-2026-10-04)
+- [Milestone 2 — React Native fundamentals: the Hero section](#milestone-2--react-native-fundamentals-the-hero-section-2026-10-04)
 - [Package log](#package-log)
 
 ---
@@ -84,6 +85,65 @@ Expo, Expo SDK, Expo Go, Metro, Hermes, JS bundle, Fast Refresh, `app.json`, slu
 
 ---
 
+## Milestone 2 — React Native fundamentals: the Hero section (2026-10-04)
+
+### What I learned
+
+**1. The web → React Native mapping, on real content.**
+
+| Website | React Native | What's different |
+|---|---|---|
+| `<div>`, `<section>` | `<View>` | Flexbox is the only layout. The default is `flexDirection: 'column'` (the web's is `row`), and children stretch across by default |
+| `<h1>`, `<p>`, `<span>` | `<Text>` | All text must be inside `<Text>`. Text styles **don't cascade** from a `View`, only from a parent `Text` |
+| `<a class="btn">` | `<Pressable>` | No `:hover` on touch. `style={({ pressed }) => …}` is the `:active` equivalent |
+| page scrolling | `<ScrollView>` | Nothing scrolls by default. Overflow is just cut off |
+| `:root { --primary }` | `constants/theme.ts` | CSS variables → a typed object with `as const` |
+| `.class` rules | `StyleSheet.create` | No selectors, no specificity. Combine styles with arrays: `[a, b, cond && c]` |
+
+**2. Units: dp, not px or rem.** Every number is in **density-independent pixels**, so `16` looks the same physical size on any phone. There are no `rem`, `em`, `vw` or `%`-of-font. Conversions I made:
+- `letter-spacing: .04em` at 11 dp becomes `letterSpacing: 0.45`.
+- `line-height: 1.08` at 30 dp becomes `lineHeight: 33`. RN's `lineHeight` is an absolute value, never a multiplier.
+- `clamp(1.85rem, 7.4vw, 3.1rem)` becomes a fixed `30`, the value it resolves to on a typical 360–412 dp phone.
+
+**3. Edge-to-edge and safe areas.** Modern Android draws the app **behind** the status bar and the navigation/gesture bar. `react-native-safe-area-context` measures those **insets** on the actual device: `SafeAreaProvider` once at the root, then `SafeAreaView` (or `useSafeAreaInsets()`) to pad content. React Native's own `SafeAreaView` is deprecated and only ever worked on iOS.
+
+**4. Some CSS has no built-in equivalent.**
+- `linear-gradient` / `radial-gradient` → there's no built-in gradient, so I used solid colours for now. A package (`expo-linear-gradient`) would add one, but only if the look really needs it.
+- `backdrop-filter: blur` → not ported.
+- `box-shadow` → **is** supported. Modern RN (New Architecture) accepts CSS-style `boxShadow` strings on Android. Older RN only had `elevation`.
+- `:hover` → doesn't exist on touch screens.
+
+**5. Accessibility is opt-in metadata.** On the web, a `<button>` is already announced as a button. In RN, a `Pressable` is just a touchable box until I add `accessibilityRole="button"`, and a heading needs `accessibilityRole="header"`. TalkBack (Android's screen reader) reads these. Android also recommends touch targets of at least **48 dp**, so buttons are 50.
+
+**6. System fonts are a working fallback, Bengali included.** Without loading any font, Android uses Roboto and falls back to its built-in Noto Bengali for the Bengali text. Custom fonts (Plus Jakarta Sans) are a Polish-phase decision, not a requirement for the text to render.
+
+### Why it matters
+Everything in the full Home screen is made of these same primitives. Getting the defaults wrong (column vs row, no cascade, no scroll, drawing under the status bar) produces bugs that look like "CSS weirdness" but come from React Native's different model.
+
+### What changed
+- Added `react-native-safe-area-context`.
+- New `constants/theme.ts`, `components/AppButton.tsx` and `components/Hero.tsx`.
+- `App.tsx` is now `SafeAreaProvider → SafeAreaView → ScrollView → Hero`, with a dark status bar.
+
+### Important commands
+```bash
+npx expo install react-native-safe-area-context   # SDK-matched version (~5.7.0)
+```
+In the Metro terminal: `r` reloads, `m` opens the dev menu, `j` opens DevTools.
+
+### Important terminology
+Safe area, insets, edge-to-edge, dp, Pressable, `StyleSheet`, TalkBack. See [`docs/glossary.md`](docs/glossary.md).
+
+### Common mistakes
+- Putting text directly in a `View` (`<View>Hello</View>`) is a runtime error. It must be inside `<Text>`.
+- Expecting `color` or `fontSize` on a `View` to style the `Text` inside it.
+- Forgetting `flex: 1` on the root view, so it only takes the height of its content.
+- Putting `flexGrow` on a `ScrollView`'s `style` instead of `contentContainerStyle`.
+- Hard-coding a status-bar height. Insets differ per device and per navigation mode.
+- Using React Native's `SafeAreaView` and expecting it to work on Android.
+
+---
+
 ## Package log
 
 Template packages from `create-expo-app --template blank-typescript`. I didn't add any of my own in this milestone.
@@ -123,3 +183,9 @@ Template packages from `create-expo-app --template blank-typescript`. I didn't a
 - **Why we needed it:** `react` itself ships no `.d.ts` types. React Native includes its own.
 - **Why not an alternative:** none needed; it's the standard type package.
 - **What it adds:** nothing to the app. It's dev-only.
+
+### `react-native-safe-area-context` (~5.7.0)
+- **Purpose:** reports the device's safe-area insets (status bar, navigation/gesture bar, display cutouts) and provides `SafeAreaProvider`, `SafeAreaView` and `useSafeAreaInsets()`.
+- **Why we needed it:** with edge-to-edge, Android draws the app behind the system bars, so content must be padded by the real, per-device insets.
+- **Why not built-in:** React Native's `SafeAreaView` is deprecated and iOS-only. Hard-coded padding is wrong on most devices. Expo's docs recommend this library, and Expo Router needs it anyway as a peer dependency.
+- **What it adds:** a small native module (already included in Expo Go) and a JS API. Installed with `npx expo install` so the version matches SDK 57.
